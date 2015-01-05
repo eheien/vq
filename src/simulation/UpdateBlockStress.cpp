@@ -64,9 +64,9 @@ void UpdateBlockStress::init(SimFramework *_sim) {
         sim->setSlipDeficit(gid, 0);
 
         if (sim->isLocalBlockID(gid)) {
-            sim->decompressNormalRow(gid);
+            //sim->decompressNormalRow(gid);
             //sim->setGreenNormal(bid, bid, 0.0);  // Erase diagonal for normal Greens matrix
-            sim->compressNormalRow(gid, 0.7);
+            //sim->compressNormalRow(gid, 0.7);
         }
     }
 

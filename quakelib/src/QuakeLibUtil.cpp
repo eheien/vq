@@ -257,41 +257,6 @@ void quakelib::Conversion::dist_vincenty(double &distance, double &start_azimuth
     end_azimuth = atan2(cosU1*sinLambda, -sinU1*cosU2+cosU1*sinU2*cosLambda);
 }
 
-template <class CELL_TYPE>
-quakelib::DenseStd<CELL_TYPE>::DenseStd(const unsigned int &ncols, const unsigned int &nrows) : DenseMatrix<CELL_TYPE>(ncols, nrows) {
-    _data = (CELL_TYPE *)valloc(sizeof(CELL_TYPE)*ncols*nrows);
-
-    //assertThrow(_data, "Not enough memory to allocate matrix.");
-    for (unsigned int i=0; i<ncols*nrows; ++i) _data[i] = 0;
-}
-
-template <class CELL_TYPE>
-quakelib::DenseStd<CELL_TYPE>::~DenseStd(void) {
-    if (_data) free(_data);
-
-    _data = NULL;
-}
-
-template <class CELL_TYPE>
-CELL_TYPE quakelib::DenseStdStraight<CELL_TYPE>::val(const unsigned int &row, const unsigned int &col) const {
-    return this->_data[row*this->_ncols+col];
-};
-
-template <class CELL_TYPE>
-unsigned long quakelib::DenseStd<CELL_TYPE>::mem_bytes(void) const {
-    return sizeof(CELL_TYPE)*this->_ncols*this->_nrows;
-}
-
-template <class CELL_TYPE>
-void quakelib::DenseStdStraight<CELL_TYPE>::setVal(const unsigned int &row, const unsigned int &col, const CELL_TYPE &new_val) {
-    this->_data[row*this->_ncols+col] = new_val;
-};
-
-template <class CELL_TYPE>
-CELL_TYPE *quakelib::DenseStdStraight<CELL_TYPE>::getRow(CELL_TYPE *buf, const unsigned int &row) const {
-    return &this->_data[row*this->_ncols];
-}
-
 template <unsigned int dim>
 double quakelib::RectBound<dim>::max_length() const {
     double          max_len;
@@ -595,17 +560,9 @@ unsigned long quakelib::Octree<dim>::mem_bytes(void) const {
     return total;
 }
 
-template class quakelib::DenseStd<float>;
-template class quakelib::DenseStdStraight<float>;
+template class quakelib::FullDenseMatrix<float>;
 
-template class quakelib::DenseStd<double>;
-template class quakelib::DenseStdStraight<double>;
-
-template class quakelib::HFullMatrix<float>;
-template class quakelib::HSuperMatrix<float>;
-
-template class quakelib::HFullMatrix<double>;
-template class quakelib::HSuperMatrix<double>;
+template class quakelib::FullDenseMatrix<double>;
 
 template class quakelib::RectBound<2>;
 template class quakelib::RectBound<3>;

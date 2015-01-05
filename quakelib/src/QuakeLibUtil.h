@@ -535,149 +535,92 @@ namespace quakelib {
     };
 
 
-
-
-
-    /*
-     Top class representing a dense matrix for computation.
-     */
     template <class CELL_TYPE>
     class DenseMatrix {
-        protected:
-            unsigned int    _ncols, _nrows;
-        public:
-            DenseMatrix(const unsigned int &ncols, const unsigned int &nrows) : _ncols(ncols), _nrows(nrows) {};
-            virtual ~DenseMatrix(void) {};
-            virtual void allocateRow(const unsigned int &row) = 0;
-            virtual CELL_TYPE val(const unsigned int &row, const unsigned int &col) const = 0;
-            virtual void setVal(const unsigned int &row, const unsigned int &col, const CELL_TYPE &new_val) = 0;
-            virtual bool compressRow(const unsigned int &row, const float &ratio) = 0;
-            virtual bool decompressRow(const unsigned int &row) = 0;
-            virtual CELL_TYPE *getRow(CELL_TYPE *buf, const unsigned int &row) const = 0;
-            virtual unsigned long mem_bytes(void) const = 0;
+    protected:
+        unsigned int    _ncols, _nrows;
+    public:
+        DenseMatrix(void) : _ncols(0), _nrows(0) {};
+        virtual ~DenseMatrix(void) {};
+        virtual size_t mem_usage(void) const {
+            return 2*sizeof(unsigned int);
+        }
     };
-
-    /*
-     Subclass representing a non-compressed dense matrix.
+    
+    template <class CELL_TYPE>
+    class FullDenseMatrix : public DenseMatrix<CELL_TYPE> {
+    protected:
+        CELL_TYPE       *_a;
+        
+    public:
+        FullDenseMatrix(void) : DenseMatrix<CELL_TYPE>(), _a(NULL) {};
+        FullDenseMatrix(const unsigned int nrows, const unsigned int ncols) {
+            this->_ncols = ncols;
+            this->_nrows = nrows;
+            _a = (CELL_TYPE *)malloc(sizeof(CELL_TYPE)*nrows*ncols);
+            for (unsigned int i=0;i<nrows*ncols;++i) _a[i] = 0;
+        }
+        ~FullDenseMatrix(void) {
+            if (_a) free(_a);
+            _a = NULL;
+        }
+        const CELL_TYPE* operator[](const unsigned int row) const {
+            assertThrow(row < this->_nrows, "out of range");        // TODO: make this error message better
+            return &(_a[row*this->_ncols]);
+        }
+        CELL_TYPE* operator[](const unsigned int row) {
+            assertThrow(row < this->_nrows, "out of range");        // TODO: make this error message better
+            return &(_a[row*this->_ncols]);
+        }
+        size_t mem_usage(void) const {
+            return sizeof(CELL_TYPE*)+this->_nrows*this->_ncols*sizeof(CELL_TYPE)+DenseMatrix<CELL_TYPE>::mem_usage();
+        }
+    };
+    
+    /*!
+     RKDenseMatrix represents a dense matrix formed by the multiplication of two lower rank dense matrices.
      */
     template <class CELL_TYPE>
-    class DenseStd : public DenseMatrix<CELL_TYPE> {
-        protected:
-            CELL_TYPE       *_data;
-        public:
-            DenseStd(const unsigned int &ncols, const unsigned int &nrows);
-            virtual ~DenseStd(void);
-            void allocateRow(const unsigned int &row) {};
-            bool compressRow(const unsigned int &row, const float &ratio) {
-                return false;
-            };
-            bool decompressRow(const unsigned int &row) {
-                return false;
-            };
-            unsigned long mem_bytes(void) const;
-    };
-
-    /*
-     Sub-subclass representing a normally oriented non-compressed dense matrix.
-     */
-    template <class CELL_TYPE>
-    class DenseStdStraight : public DenseStd<CELL_TYPE> {
-        public:
-            DenseStdStraight(const unsigned int &ncols, const unsigned int &nrows) : DenseStd<CELL_TYPE>(ncols, nrows) {};
-            virtual ~DenseStdStraight(void) {};
-            CELL_TYPE val(const unsigned int &row, const unsigned int &col) const;
-            void setVal(const unsigned int &row, const unsigned int &col, const CELL_TYPE &new_val);
-            CELL_TYPE *getRow(CELL_TYPE *buf, const unsigned int &row) const;
-    };
-
-    template <class CELL_TYPE>
-    class HierarchicalMatrix {
-        protected:
-            unsigned int    _rows, _cols;
-
-        public:
-            HierarchicalMatrix(void) : _rows(0), _cols(0) {};
-            virtual ~HierarchicalMatrix(void) {};
-            virtual void set(unsigned int row, unsigned int col, CELL_TYPE new_val) = 0;
-            virtual CELL_TYPE get(unsigned int row, unsigned int col) const = 0;
+    class RKDenseMatrix : public DenseMatrix<CELL_TYPE> {
+    protected:
+        unsigned int    _k;
+        CELL_TYPE       *_a, *_b;
+    public:
+        RKDenseMatrix(void) : DenseMatrix<CELL_TYPE>() {
+            _k = 0;
+            _a = _b = NULL;
+        };
+        RKDenseMatrix(const unsigned int nrows, const unsigned int ncols, const unsigned int k) {
+            _k = k;
+            this->_nrows = nrows;
+            this->_ncols = ncols;
+            if (k > 0) {
+                _a = (CELL_TYPE*)malloc(sizeof(CELL_TYPE)*k*nrows);
+                for (unsigned int i=0;i<nrows*k;++i) _a[i] = 0;
+                _b = (CELL_TYPE*)malloc(sizeof(CELL_TYPE)*k*ncols);
+                for (unsigned int i=0;i<ncols*k;++i) _b[i] = 0;
+            } else {
+                _a = _b = NULL;
+            }
+        }
+        ~RKDenseMatrix(void) {
+            if (_a) free(_a);
+            if (_b) free(_b);
+            _a = _b = NULL;
+        }
+        
+        size_t mem_usage(void) const {
+            return sizeof(unsigned int)+2*sizeof(CELL_TYPE*)+sizeof(CELL_TYPE)*(this->_ncols*_k + this->_nrows*_k)+DenseMatrix<CELL_TYPE>::mem_usage();
+        }
     };
 
     template <class CELL_TYPE>
-    class HFullMatrix : public HierarchicalMatrix<CELL_TYPE> {
-        private:
-            CELL_TYPE       *_vals;
-
-        public:
-            HFullMatrix(void) : HierarchicalMatrix<CELL_TYPE>(), _vals(NULL) {};
-
-            HFullMatrix(unsigned int nrows, unsigned int ncols) {
-                this->_rows = nrows;
-                this->_cols = ncols;
-                _vals = (CELL_TYPE *)malloc(this->_rows*this->_cols*sizeof(CELL_TYPE));
-            }
-
-            virtual ~HFullMatrix(void) {
-                if (_vals) free(_vals);
-            }
-
-            virtual void set(unsigned int row, unsigned int col, CELL_TYPE new_val) {
-                assertThrow(row < this->_rows, "Out of bounds");
-                assertThrow(col < this->_cols, "Out of bounds");
-                _vals[row*this->_cols+col] = new_val;
-            }
-
-            virtual CELL_TYPE get(unsigned int row, unsigned int col) const {
-                assertThrow(row < this->_rows, "Out of bounds");
-                assertThrow(col < this->_cols, "Out of bounds");
-                return _vals[row*this->_cols+col];
-            }
+    class SuperDenseMatrix : public DenseMatrix<CELL_TYPE> {
+    protected:
+        unsigned int            _block_rows, _block_cols;
+        DenseMatrix<CELL_TYPE>  **_children;
+    public:
     };
-
-
-    template <class CELL_TYPE>
-    class HSuperMatrix : public HierarchicalMatrix<CELL_TYPE> {
-        private:
-            unsigned int                    _mat_rows, _mat_cols;
-            HierarchicalMatrix<CELL_TYPE>   **_matrices;
-
-        public:
-            virtual void set(unsigned int row, unsigned int col, CELL_TYPE new_val) {
-                unsigned int sub_matrix_row, sub_matrix_col, new_row, new_col;
-
-                assertThrow(row < this->_rows, "Out of bounds");
-                assertThrow(col < this->_cols, "Out of bounds");
-
-                sub_matrix_row = row/(this->_rows/_mat_rows);
-                sub_matrix_col = col/(this->_cols/_mat_cols);
-
-                assertThrow(sub_matrix_row < this->_mat_rows, "Out of bounds");
-                assertThrow(sub_matrix_col < this->_mat_cols, "Out of bounds");
-
-                new_row = row-sub_matrix_row*(this->_rows/_mat_rows);
-                new_col = col-sub_matrix_col*(this->_cols/_mat_cols);
-
-                _matrices[sub_matrix_row*_mat_rows+sub_matrix_col]->set(new_row, new_col, new_val);
-            }
-
-            virtual CELL_TYPE get(unsigned int row, unsigned int col) const {
-                unsigned int sub_matrix_row, sub_matrix_col, new_row, new_col;
-
-                assertThrow(row < this->_rows, "Out of bounds");
-                assertThrow(col < this->_cols, "Out of bounds");
-
-                sub_matrix_row = row/_mat_rows;
-                sub_matrix_col = col/_mat_cols;
-
-                assertThrow(sub_matrix_row < this->_mat_rows, "Out of bounds");
-                assertThrow(sub_matrix_col < this->_mat_cols, "Out of bounds");
-
-                new_row = row-sub_matrix_row*(this->_rows/_mat_rows);
-                new_col = col-sub_matrix_col*(this->_cols/_mat_cols);
-
-                return _matrices[sub_matrix_row*_mat_rows+sub_matrix_col]->get(new_row, new_col);
-            }
-    };
-
 
     // Rectangular shaped bound of Cartesian space
     // The bound consists of all points in [_min_bound[i], _max_bound[i]) for i in [0,dim)

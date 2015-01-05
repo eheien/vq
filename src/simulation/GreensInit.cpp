@@ -110,8 +110,8 @@ void GreensInit::init(SimFramework *_sim) {
     sim->console() << std::endl << "# Greens function took " << sim->curTime() - start_time << " seconds." << std::endl;
 
     // Determine Green's function matrix memory usage
-    double shear_bytes = sim->greenShear()->mem_bytes();
-    double normal_bytes = sim->greenNormal()->mem_bytes();
+    double shear_bytes = sim->greenShear().mem_usage();
+    double normal_bytes = sim->greenNormal().mem_usage();
     int shear_ind = (log(shear_bytes)/log(2))/10;
     int norm_ind = (log(shear_bytes)/log(2))/10;
     double abbr_shear_bytes = shear_bytes/pow(2,shear_ind*10);

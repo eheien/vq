@@ -111,10 +111,6 @@ Simulation::~Simulation(void) {
     console() << "Number matrix multiplies: " << num_mults << std::endl;
 #endif
 
-    if (mult_buffer) delete mult_buffer;
-
-    if (decompress_buf) delete decompress_buf;
-
     deallocateArrays();
 }
 
@@ -310,7 +306,7 @@ void Simulation::calcCFF(const BlockID gid) {
 // Whether to perform sparse multiplications - these have no effect on the simulation
 // and will only slow things down, generally used for testing purposes
 
-void Simulation::matrixVectorMultiplyAccum(double *c, const quakelib::DenseMatrix<GREEN_VAL> *a, const double *b) {
+void Simulation::matrixVectorMultiplyAccum(double *c, const quakelib::FullDenseMatrix<GREEN_VAL> &a, const double *b) {
     int         x, width, height, array_dim;
     double      val;
 #ifdef DEBUG
@@ -323,13 +319,10 @@ void Simulation::matrixVectorMultiplyAccum(double *c, const quakelib::DenseMatri
     height = numLocalBlocks();
     width = numGlobalBlocks();
     array_dim = localSize();
-
-    if (!decompress_buf) decompress_buf = (GREEN_VAL *)valloc(sizeof(GREEN_VAL)*array_dim);
-
     
     for (x=0; x<height; ++x) {
         val = 0;
-        multiplySumRow(&val, b, a->getRow(decompress_buf, x), width);
+        multiplySumRow(&val, b, a[x], width);
         c[x] += val;
     }
 
@@ -824,7 +817,4 @@ void Simulation::partitionBlocks(void) {
     }
 
 #endif
-
-    mult_buffer = NULL;
-    decompress_buf = NULL;
 }

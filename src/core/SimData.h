@@ -38,9 +38,9 @@
 class VCSimData : public VCSimDataBlocks, public VCSimDataEvents {
     private:
         unsigned int            global_size, local_size;
-        quakelib::DenseMatrix<GREEN_VAL>    *green_shear, *green_normal;
 
     protected:
+        quakelib::FullDenseMatrix<GREEN_VAL>    green_shear, green_normal;
         double                  *shear_stress;
         double                  *normal_stress;
         double                  *update_field;
@@ -56,7 +56,7 @@ class VCSimData : public VCSimDataBlocks, public VCSimDataEvents {
         double                  *normal_stress0;
 
     public:
-        VCSimData(void) : global_size(0), local_size(0), green_shear(NULL), green_normal(NULL),
+        VCSimData(void) : global_size(0), local_size(0),
             shear_stress(NULL), normal_stress(NULL), update_field(NULL), slip_deficit(NULL),
             rhogd(NULL), stress_drop(NULL), cff(NULL), friction(NULL), cff0(NULL),
             self_shear(NULL), self_normal(NULL), shear_stress0(NULL), normal_stress0(NULL) {};
@@ -72,10 +72,10 @@ class VCSimData : public VCSimDataBlocks, public VCSimDataEvents {
             return global_size;
         };
 
-        quakelib::DenseMatrix<GREEN_VAL> *greenShear(void) const {
+        const quakelib::FullDenseMatrix<GREEN_VAL> &greenShear(void) const {
             return green_shear;
         };
-        quakelib::DenseMatrix<GREEN_VAL> *greenNormal(void) const {
+        const quakelib::FullDenseMatrix<GREEN_VAL> &greenNormal(void) const {
             return green_normal;
         };
         double *getUpdateFieldPtr(void) const {

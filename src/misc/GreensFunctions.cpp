@@ -324,7 +324,7 @@ void GreensFuncCalcBarnesHut::bhInnerCalc(Simulation *sim, quakelib::Octree<3> *
     Block                               repr_block;
 
     // Allocate row for this block (if using compressible matrices)
-    sim->allocateShearNormalRows(bid);
+    //sim->allocateShearNormalRows(bid);
 
     target_point = sim->getBlock(bid).center();
     local_node = tree->get_leaf_containing_point(target_point);
@@ -400,6 +400,6 @@ void GreensFuncCalcBarnesHut::bhInnerCalc(Simulation *sim, quakelib::Octree<3> *
     }
 
     // Compress the computed matrix row if savings are greater than 30%
-    sim->compressShearRow(bid, 0.7);
-    sim->compressNormalRow(bid, 0.7);
+    //sim->compressShearRow(bid, 0.7);
+    //sim->compressNormalRow(bid, 0.7);
 }

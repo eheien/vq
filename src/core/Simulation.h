@@ -82,43 +82,27 @@ class Simulation : public SimFramework, public VCParams, public VCSimData, publi
         double sumGreenShear(const BlockID &r) const {
             double sum = 0;
 
-            for (int i=0; i<numGlobalBlocks(); ++i) sum += greenShear()->val(i, r);
+            for (int i=0; i<numGlobalBlocks(); ++i) sum += green_shear[i][r];
 
             return sum;
         };
         double getGreenShear(const BlockID &r, const BlockID &c) const {
-            return greenShear()->val(getLocalInd(r), c);
+            return green_shear[getLocalInd(r)][c];
         };
         void setGreens(const BlockID &r, const BlockID &c, const double &new_green_shear, const double &new_green_normal) {
-            greenShear()->setVal(getLocalInd(r), c, new_green_shear);
-            greenNormal()->setVal(getLocalInd(r), c, new_green_normal);
+            green_shear[getLocalInd(r)][c] = new_green_shear;
+            green_normal[getLocalInd(r)][c] = new_green_normal;
 
             if (r == c) setSelfStresses(r, new_green_shear, new_green_normal);
         };
         double getGreenNormal(const BlockID &r, const BlockID &c) const {
-            return greenNormal()->val(getLocalInd(r), c);
-        };
-        bool compressShearRow(const unsigned int &row, const float &ratio) {
-            return greenShear()->compressRow(row, ratio);
-        };
-        bool compressNormalRow(const unsigned int &row, const float &ratio) {
-            return greenNormal()->compressRow(row, ratio);
-        };
-        bool decompressShearRow(const unsigned int &row) {
-            return greenShear()->decompressRow(row);
-        };
-        bool decompressNormalRow(const unsigned int &row) {
-            return greenNormal()->decompressRow(row);
-        };
-        void allocateShearNormalRows(const unsigned int &row) {
-            greenNormal()->allocateRow(row);
-            greenShear()->allocateRow(row);
+            return green_normal[getLocalInd(r)][c];
         };
 
         void determineBlockNeighbors(void);
         void computeCFFs(void);
         void calcCFF(const BlockID gid);
-        void matrixVectorMultiplyAccum(double *c, const quakelib::DenseMatrix<GREEN_VAL> *a, const double *b);
+        void matrixVectorMultiplyAccum(double *c, const quakelib::FullDenseMatrix<GREEN_VAL> &a, const double *b);
         void multiplySumRow(double *c, const double *b, const GREEN_VAL *a, const int n);
         void distributeUpdateField(void);
         void distributeBlocks(const quakelib::ElementIDSet &local_id_list, BlockIDProcMapping &global_id_list);
@@ -248,10 +232,6 @@ class Simulation : public SimFramework, public VCParams, public VCSimData, publi
 #endif
         //! Current simulation year
         double                      year;
-
-        //! Temporary buffer used to speed up calculations
-        double                      *mult_buffer;
-        GREEN_VAL                   *decompress_buf;
 
         //! Files to write stress records to
         std::ofstream       stress_index_outfile, stress_outfile;
