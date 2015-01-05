@@ -27,21 +27,15 @@
  and stress value arrays.
  */
 void VCSimData::setupArrays(const unsigned int &global_sys_size,
-                            const unsigned int &local_sys_size,
-                            const bool &compressed) {
+                            const unsigned int &local_sys_size) {
     deallocateArrays();
 
     global_size = global_sys_size;
     // Make the local size a factor of 16 to allow SSE loop unrolling
     local_size = local_sys_size+(16-local_sys_size%16);
 
-    if (compressed) {
-        green_shear = new quakelib::CompressedRowMatrixStraight<GREEN_VAL>(local_size, global_size);
-        green_normal = new quakelib::CompressedRowMatrixStraight<GREEN_VAL>(local_size, global_size);
-    } else {
-        green_shear = new quakelib::DenseStdStraight<GREEN_VAL>(local_size, global_size);
-        green_normal = new quakelib::DenseStdStraight<GREEN_VAL>(local_size, global_size);
-    }
+    green_shear = new quakelib::DenseStdStraight<GREEN_VAL>(local_size, global_size);
+    green_normal = new quakelib::DenseStdStraight<GREEN_VAL>(local_size, global_size);
 
     shear_stress = (double *)malloc(sizeof(double)*global_size);
     assertThrow(shear_stress, "Not enough memory to allocate shear stress array.");
@@ -78,20 +72,6 @@ void VCSimData::setupArrays(const unsigned int &global_sys_size,
         shear_stress0[i] = normal_stress0[i] = std::numeric_limits<float>::quiet_NaN();
     }
 }
-
-// bh_theta = 0.1
-
-// Results for 6 layers 1 km
-// No compression: 112MB in Greens
-// Compression: 56MB in Greens
-
-// Results for 12 layers 1 km
-// No compression: 433MB in Greens, 306MB after
-// Compression: 142MB in Greens
-
-// Results for 24 layers 1 km
-// No compression: 1689MB in Greens
-// Compression: 465MB in Greens
 
 /*!
  Deallocate previously created arrays.

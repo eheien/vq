@@ -551,7 +551,6 @@ namespace quakelib {
             virtual void allocateRow(const unsigned int &row) = 0;
             virtual CELL_TYPE val(const unsigned int &row, const unsigned int &col) const = 0;
             virtual void setVal(const unsigned int &row, const unsigned int &col, const CELL_TYPE &new_val) = 0;
-            virtual bool compressed(void) const = 0;
             virtual bool compressRow(const unsigned int &row, const float &ratio) = 0;
             virtual bool decompressRow(const unsigned int &row) = 0;
             virtual CELL_TYPE *getRow(CELL_TYPE *buf, const unsigned int &row) const = 0;
@@ -569,9 +568,6 @@ namespace quakelib {
             DenseStd(const unsigned int &ncols, const unsigned int &nrows);
             virtual ~DenseStd(void);
             void allocateRow(const unsigned int &row) {};
-            bool compressed(void) const {
-                return false;
-            };
             bool compressRow(const unsigned int &row, const float &ratio) {
                 return false;
             };
@@ -589,59 +585,6 @@ namespace quakelib {
         public:
             DenseStdStraight(const unsigned int &ncols, const unsigned int &nrows) : DenseStd<CELL_TYPE>(ncols, nrows) {};
             virtual ~DenseStdStraight(void) {};
-            CELL_TYPE val(const unsigned int &row, const unsigned int &col) const;
-            void setVal(const unsigned int &row, const unsigned int &col, const CELL_TYPE &new_val);
-            CELL_TYPE *getRow(CELL_TYPE *buf, const unsigned int &row) const;
-    };
-
-    /*
-     Structure of compressed row run.
-     */
-    template <class CELL_TYPE>
-    struct RowRun {
-        int         _length;
-        CELL_TYPE   _val;
-    };
-
-    template <class CELL_TYPE>
-    class CompressedRow {
-        private:
-            RowRun<CELL_TYPE>   *runs;
-            CELL_TYPE           *raw_data;
-            bool                compressed;
-            unsigned int        data_dim;       // Dimension of the data, either number of runs (when compressed == true) or number of values (when compressed == false)
-        public:
-            CompressedRow(const unsigned int &ncols);
-            void init(const unsigned int &dim);
-            unsigned int getRowLen(void);
-            bool compressRow(const float &ratio);
-            bool decompressRow(void);
-            CELL_TYPE val(const unsigned int &col) const;
-            void setVal(const unsigned int &col, const CELL_TYPE &new_val);
-            void copyRowContents(CELL_TYPE *dest) const;
-            unsigned long mem_bytes(void) const;
-    };
-
-    template <class CELL_TYPE>
-    class CompressedRowMatrix : public DenseMatrix<CELL_TYPE> {
-        protected:
-            CompressedRow<CELL_TYPE>    **_rows;
-        public:
-            CompressedRowMatrix(const unsigned int &ncols, const unsigned int &nrows);
-            virtual ~CompressedRowMatrix(void) {};
-            void allocateRow(const unsigned int &row);
-            bool compressed(void) const {
-                return true;
-            };
-            bool compressRow(const unsigned int &row, const float &ratio);
-            bool decompressRow(const unsigned int &row);
-            unsigned long mem_bytes(void) const;
-    };
-
-    template <class CELL_TYPE>
-    class CompressedRowMatrixStraight : public CompressedRowMatrix<CELL_TYPE> {
-        public:
-            CompressedRowMatrixStraight(const unsigned int &ncols, const unsigned int &nrows) : CompressedRowMatrix<CELL_TYPE>(ncols, nrows) {};
             CELL_TYPE val(const unsigned int &row, const unsigned int &col) const;
             void setVal(const unsigned int &row, const unsigned int &col, const CELL_TYPE &new_val);
             CELL_TYPE *getRow(CELL_TYPE *buf, const unsigned int &row) const;

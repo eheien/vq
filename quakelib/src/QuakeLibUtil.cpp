@@ -273,42 +273,6 @@ quakelib::DenseStd<CELL_TYPE>::~DenseStd(void) {
 }
 
 template <class CELL_TYPE>
-quakelib::CompressedRowMatrix<CELL_TYPE>::CompressedRowMatrix(const unsigned int &ncols, const unsigned int &nrows) : DenseMatrix<CELL_TYPE>(ncols, nrows) {
-    _rows = (CompressedRow<CELL_TYPE> **)valloc(nrows*sizeof(CompressedRow<CELL_TYPE> *));
-
-    //assertThrow(_rows, "Not enough memory to allocate matrix.");
-    // Wait to allocate rows until they are actually needed
-    for (unsigned int i=0; i<nrows; ++i) _rows[i] = NULL;
-}
-
-template <class CELL_TYPE>
-void quakelib::CompressedRowMatrix<CELL_TYPE>::allocateRow(const unsigned int &row) {
-    _rows[row] = new CompressedRow<CELL_TYPE>(this->_ncols);
-    //assertThrow(_rows[row], "Not enough memory to allocate matrix.");
-}
-
-template <class CELL_TYPE>
-bool quakelib::CompressedRowMatrix<CELL_TYPE>::compressRow(const unsigned int &row, const float &ratio) {
-    //assertThrow(row >= 0 && row < this->_nrows, "Outside row bounds.");
-    return _rows[row]->compressRow(ratio);
-}
-
-template <class CELL_TYPE>
-bool quakelib::CompressedRowMatrix<CELL_TYPE>::decompressRow(const unsigned int &row) {
-    //assertThrow(row >= 0 && row < this->_nrows, "Outside row bounds.");
-    return _rows[row]->decompressRow();
-}
-
-template <class CELL_TYPE>
-quakelib::CompressedRow<CELL_TYPE>::CompressedRow(const unsigned int &ncols) {
-    data_dim = ncols;
-    compressed = false;
-    raw_data = NULL;
-    runs = NULL;
-    init(ncols);
-}
-
-template <class CELL_TYPE>
 CELL_TYPE quakelib::DenseStdStraight<CELL_TYPE>::val(const unsigned int &row, const unsigned int &col) const {
     return this->_data[row*this->_ncols+col];
 };
@@ -319,184 +283,13 @@ unsigned long quakelib::DenseStd<CELL_TYPE>::mem_bytes(void) const {
 }
 
 template <class CELL_TYPE>
-unsigned long quakelib::CompressedRow<CELL_TYPE>::mem_bytes(void) const {
-    if (compressed) return sizeof(RowRun<CELL_TYPE> *)+sizeof(RowRun<CELL_TYPE>)*data_dim+sizeof(CELL_TYPE *)+sizeof(bool)+sizeof(unsigned int);
-    else return sizeof(RowRun<CELL_TYPE> *)+sizeof(CELL_TYPE *)+sizeof(CELL_TYPE)*data_dim+sizeof(bool)+sizeof(unsigned int);
-}
-
-template <class CELL_TYPE>
-unsigned long quakelib::CompressedRowMatrix<CELL_TYPE>::mem_bytes(void) const {
-    unsigned long sum=0;
-
-    for (int i=0; i<this->_nrows; ++i) sum += _rows[i]->mem_bytes();
-
-    return sum;
-}
-
-template <class CELL_TYPE>
-void quakelib::CompressedRow<CELL_TYPE>::init(const unsigned int &dim) {
-    raw_data = (CELL_TYPE *)valloc(sizeof(CELL_TYPE)*dim);
-
-    for (unsigned int i=0; i<dim; ++i) raw_data[i] = 0;
-}
-
-template <class CELL_TYPE>
-unsigned int quakelib::CompressedRow<CELL_TYPE>::getRowLen(void) {
-    unsigned int    i, uncompressed_len;
-
-    if (compressed) {
-        uncompressed_len = 0;
-
-        for (i=0; i<data_dim; ++i) uncompressed_len += runs[i]._length;
-    } else {
-        uncompressed_len = data_dim;
-    }
-
-    return uncompressed_len;
-}
-
-template <class CELL_TYPE>
 void quakelib::DenseStdStraight<CELL_TYPE>::setVal(const unsigned int &row, const unsigned int &col, const CELL_TYPE &new_val) {
     this->_data[row*this->_ncols+col] = new_val;
 };
 
 template <class CELL_TYPE>
-CELL_TYPE quakelib::CompressedRowMatrixStraight<CELL_TYPE>::val(const unsigned int &row, const unsigned int &col) const {
-    return this->_rows[row]->val(col);
-};
-
-template <class CELL_TYPE>
-void quakelib::CompressedRowMatrixStraight<CELL_TYPE>::setVal(const unsigned int &row, const unsigned int &col, const CELL_TYPE &new_val) {
-    this->_rows[row]->setVal(col, new_val);
-};
-
-template <class CELL_TYPE>
 CELL_TYPE *quakelib::DenseStdStraight<CELL_TYPE>::getRow(CELL_TYPE *buf, const unsigned int &row) const {
     return &this->_data[row*this->_ncols];
-}
-
-template <class CELL_TYPE>
-CELL_TYPE *quakelib::CompressedRowMatrixStraight<CELL_TYPE>::getRow(CELL_TYPE *buf, const unsigned int &row) const {
-    this->_rows[row]->copyRowContents(buf);
-    return buf;
-}
-
-// This shouldn't be used for compressed rows in performance critical sections
-template <class CELL_TYPE>
-CELL_TYPE quakelib::CompressedRow<CELL_TYPE>::val(const unsigned int &col) const {
-    unsigned int        i, cur_col;
-
-    if (compressed) {
-        cur_col = 0;
-
-        for (i=0; i<data_dim; ++i) {
-            if (cur_col >= col) break;
-
-            cur_col += runs[i]._length;
-        }
-
-        return runs[i]._val;
-    } else {
-        return raw_data[col];
-    }
-}
-
-template <class CELL_TYPE>
-void quakelib::CompressedRow<CELL_TYPE>::setVal(const unsigned int &col, const CELL_TYPE &new_val) {
-    if (compressed) {
-        //assertThrow(false, "Shouldn't access compressed row.");
-    } else {
-        raw_data[col] = new_val;
-    }
-}
-
-// Decompress from runs to raw data
-template <class CELL_TYPE>
-bool quakelib::CompressedRow<CELL_TYPE>::decompressRow(void) {
-    unsigned int new_data_dim;
-
-    // If not already compressed we can return
-    if (!compressed) return false;
-
-    // Create the new raw_data array and copy the compressed data into it
-    new_data_dim = getRowLen();
-    init(new_data_dim);
-    copyRowContents(raw_data);
-
-    // Delete the old compressed data
-    delete runs;
-    runs = NULL;
-    compressed = false;
-    data_dim = new_data_dim;
-
-    return true;
-}
-
-/*
- Try compressing the raw data of this row.  If the compression ratio (new size/old size)
- is greater than the specified ratio, the row remains uncompressed.
- */
-template <class CELL_TYPE>
-bool quakelib::CompressedRow<CELL_TYPE>::compressRow(const float &ratio) {
-    double          last_val, compress_ratio;
-    unsigned int    i, num_runs, cur_run, run_start;
-
-    // If already compressed we can return
-    if (compressed) return false;
-
-    num_runs = 1;
-    last_val = raw_data[0];
-
-    // Count the number of runs in the data
-    for (i=1; i<data_dim; ++i) {
-        if (raw_data[i] != last_val) {
-            num_runs++;
-            last_val = raw_data[i];
-        }
-    }
-
-    // Compression ratio is new_size/old_size
-    compress_ratio = (num_runs*sizeof(RowRun<CELL_TYPE>))/(data_dim*sizeof(CELL_TYPE));
-
-    // If we achieve an acceptable compression ratio for this row, compress it
-    if (compress_ratio <= ratio) {
-        runs = (RowRun<CELL_TYPE> *)valloc(sizeof(RowRun<CELL_TYPE>)*num_runs);
-        cur_run = 0;
-        last_val = raw_data[0];
-        run_start = 0;
-
-        for (i=1; i<data_dim; ++i) {
-            if (raw_data[i] != last_val || i == data_dim-1) {
-                runs[cur_run]._val = last_val;
-                runs[cur_run]._length = i-run_start;
-                cur_run++;
-                last_val = raw_data[i];
-                run_start = i;
-            }
-        }
-
-        data_dim = num_runs;
-        compressed = true;
-        delete raw_data;
-        raw_data = NULL;
-    }
-
-    return compressed;
-}
-
-template <class CELL_TYPE>
-void quakelib::CompressedRow<CELL_TYPE>::copyRowContents(CELL_TYPE *dest) const {
-    unsigned int        i, n, p;
-
-    if (compressed) {
-        for (p=0,i=0; i<data_dim; ++i) {
-            for (n=0; n<runs[i]._length; ++n,++p) {
-                dest[p] = runs[i]._val;
-            }
-        }
-    } else {
-        for (i=0; i<data_dim; ++i) dest[i] = raw_data[i];
-    }
 }
 
 template <unsigned int dim>
@@ -804,13 +597,9 @@ unsigned long quakelib::Octree<dim>::mem_bytes(void) const {
 
 template class quakelib::DenseStd<float>;
 template class quakelib::DenseStdStraight<float>;
-template class quakelib::CompressedRowMatrix<float>;
-template class quakelib::CompressedRowMatrixStraight<float>;
 
 template class quakelib::DenseStd<double>;
 template class quakelib::DenseStdStraight<double>;
-template class quakelib::CompressedRowMatrix<double>;
-template class quakelib::CompressedRowMatrixStraight<double>;
 
 template class quakelib::HFullMatrix<float>;
 template class quakelib::HSuperMatrix<float>;

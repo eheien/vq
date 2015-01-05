@@ -309,7 +309,6 @@ void Simulation::calcCFF(const BlockID gid) {
 
 // Whether to perform sparse multiplications - these have no effect on the simulation
 // and will only slow things down, generally used for testing purposes
-//#define PERFORM_SPARSE_MULTIPLIES
 
 void Simulation::matrixVectorMultiplyAccum(double *c, const quakelib::DenseMatrix<GREEN_VAL> *a, const double *b) {
     int         x, width, height, array_dim;
@@ -327,6 +326,7 @@ void Simulation::matrixVectorMultiplyAccum(double *c, const quakelib::DenseMatri
 
     if (!decompress_buf) decompress_buf = (GREEN_VAL *)valloc(sizeof(GREEN_VAL)*array_dim);
 
+    
     for (x=0; x<height; ++x) {
         val = 0;
         multiplySumRow(&val, b, a->getRow(decompress_buf, x), width);

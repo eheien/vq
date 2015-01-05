@@ -62,8 +62,7 @@ class VCSimData : public VCSimDataBlocks, public VCSimDataEvents {
             self_shear(NULL), self_normal(NULL), shear_stress0(NULL), normal_stress0(NULL) {};
 
         void setupArrays(const unsigned int &global_sys_size,
-                         const unsigned int &local_sys_size,
-                         const bool &compressed);
+                         const unsigned int &local_sys_size);
         void deallocateArrays(void);
 
         unsigned int localSize(void) const {

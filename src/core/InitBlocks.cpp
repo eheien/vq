@@ -49,9 +49,7 @@ void VCInitBlocks::init(SimFramework *_sim) {
 
     // Initialize simulation arrays and classes
     sim->setupArrays(sim->numGlobalBlocks(),
-                     sim->numLocalBlocks(),
-                     // use compressed array for Barnes Hut style Greens function calculations
-                     sim->getGreensCalcMethod()==GREENS_CALC_BARNES_HUT);
+                     sim->numLocalBlocks());
 
     // Set the starting year of the simulation
     sim->setYear(sim->getSimStart());
