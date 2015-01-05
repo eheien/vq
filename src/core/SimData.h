@@ -63,8 +63,7 @@ class VCSimData : public VCSimDataBlocks, public VCSimDataEvents {
 
         void setupArrays(const unsigned int &global_sys_size,
                          const unsigned int &local_sys_size,
-                         const bool &compressed,
-                         const bool &transposed);
+                         const bool &compressed);
         void deallocateArrays(void);
 
         unsigned int localSize(void) const {

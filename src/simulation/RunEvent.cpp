@@ -315,14 +315,12 @@ void RunEvent::processStaticFailure(Simulation *sim) {
         // Calculate the CFFs based on the stuck blocks
         sim->matrixVectorMultiplyAccum(sim->getShearStressPtr(),
                                        sim->greenShear(),
-                                       sim->getUpdateFieldPtr(),
-                                       true);
+                                       sim->getUpdateFieldPtr());
 
         if (sim->doNormalStress()) {
             sim->matrixVectorMultiplyAccum(sim->getNormalStressPtr(),
                                            sim->greenNormal(),
-                                           sim->getUpdateFieldPtr(),
-                                           true);
+                                           sim->getUpdateFieldPtr());
         }
 
         sim->computeCFFs();
@@ -343,14 +341,12 @@ void RunEvent::processStaticFailure(Simulation *sim) {
         // Calculate the new shear stresses and CFFs given the new update field values
         sim->matrixVectorMultiplyAccum(sim->getShearStressPtr(),
                                        sim->greenShear(),
-                                       sim->getUpdateFieldPtr(),
-                                       true);
+                                       sim->getUpdateFieldPtr());
 
         if (sim->doNormalStress()) {
             sim->matrixVectorMultiplyAccum(sim->getNormalStressPtr(),
                                            sim->greenNormal(),
-                                           sim->getUpdateFieldPtr(),
-                                           true);
+                                           sim->getUpdateFieldPtr());
         }
 
         sim->computeCFFs();
@@ -462,14 +458,12 @@ void RunEvent::processAftershock(Simulation *sim) {
     // Calculate the new shear stresses and CFFs given the new update field values
     sim->matrixVectorMultiplyAccum(sim->getShearStressPtr(),
                                    sim->greenShear(),
-                                   sim->getUpdateFieldPtr(),
-                                   true);
+                                   sim->getUpdateFieldPtr());
 
     if (sim->doNormalStress()) {
         sim->matrixVectorMultiplyAccum(sim->getNormalStressPtr(),
                                        sim->greenNormal(),
-                                       sim->getUpdateFieldPtr(),
-                                       true);
+                                       sim->getUpdateFieldPtr());
     }
 
     sim->computeCFFs();

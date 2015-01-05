@@ -551,12 +551,10 @@ namespace quakelib {
             virtual void allocateRow(const unsigned int &row) = 0;
             virtual CELL_TYPE val(const unsigned int &row, const unsigned int &col) const = 0;
             virtual void setVal(const unsigned int &row, const unsigned int &col, const CELL_TYPE &new_val) = 0;
-            virtual bool transpose(void) const = 0;
             virtual bool compressed(void) const = 0;
             virtual bool compressRow(const unsigned int &row, const float &ratio) = 0;
             virtual bool decompressRow(const unsigned int &row) = 0;
             virtual CELL_TYPE *getRow(CELL_TYPE *buf, const unsigned int &row) const = 0;
-            virtual CELL_TYPE *getCol(CELL_TYPE *buf, const unsigned int &col) const = 0;
             virtual unsigned long mem_bytes(void) const = 0;
     };
 
@@ -591,30 +589,9 @@ namespace quakelib {
         public:
             DenseStdStraight(const unsigned int &ncols, const unsigned int &nrows) : DenseStd<CELL_TYPE>(ncols, nrows) {};
             virtual ~DenseStdStraight(void) {};
-            bool transpose(void) const {
-                return false;
-            };
             CELL_TYPE val(const unsigned int &row, const unsigned int &col) const;
             void setVal(const unsigned int &row, const unsigned int &col, const CELL_TYPE &new_val);
             CELL_TYPE *getRow(CELL_TYPE *buf, const unsigned int &row) const;
-            CELL_TYPE *getCol(CELL_TYPE *buf, const unsigned int &col) const;
-    };
-
-    /*
-     Sub-subclass representing a transposed non-compressed dense matrix.
-     */
-    template <class CELL_TYPE>
-    class DenseStdTranspose : public DenseStd<CELL_TYPE> {
-        public:
-            DenseStdTranspose(const unsigned int &ncols, const unsigned int &nrows) : DenseStd<CELL_TYPE>(nrows, ncols) {};
-            virtual ~DenseStdTranspose(void) {};
-            bool transpose(void) const {
-                return true;
-            };
-            CELL_TYPE val(const unsigned int &row, const unsigned int &col) const;
-            void setVal(const unsigned int &row, const unsigned int &col, const CELL_TYPE &new_val);
-            CELL_TYPE *getRow(CELL_TYPE *buf, const unsigned int &row) const;
-            CELL_TYPE *getCol(CELL_TYPE *buf, const unsigned int &col) const;
     };
 
     /*
@@ -665,26 +642,9 @@ namespace quakelib {
     class CompressedRowMatrixStraight : public CompressedRowMatrix<CELL_TYPE> {
         public:
             CompressedRowMatrixStraight(const unsigned int &ncols, const unsigned int &nrows) : CompressedRowMatrix<CELL_TYPE>(ncols, nrows) {};
-            bool transpose(void) const {
-                return false;
-            };
             CELL_TYPE val(const unsigned int &row, const unsigned int &col) const;
             void setVal(const unsigned int &row, const unsigned int &col, const CELL_TYPE &new_val);
             CELL_TYPE *getRow(CELL_TYPE *buf, const unsigned int &row) const;
-            CELL_TYPE *getCol(CELL_TYPE *buf, const unsigned int &col) const;
-    };
-
-    template <class CELL_TYPE>
-    class CompressedRowMatrixTranspose : public CompressedRowMatrix<CELL_TYPE> {
-        public:
-            CompressedRowMatrixTranspose(const unsigned int &ncols, const unsigned int &nrows) : CompressedRowMatrix<CELL_TYPE>(ncols, nrows) {};
-            bool transpose(void) const {
-                return true;
-            };
-            CELL_TYPE val(const unsigned int &row, const unsigned int &col) const;
-            void setVal(const unsigned int &row, const unsigned int &col, const CELL_TYPE &new_val);
-            CELL_TYPE *getRow(CELL_TYPE *buf, const unsigned int &row) const;
-            CELL_TYPE *getCol(CELL_TYPE *buf, const unsigned int &col) const;
     };
 
     template <class CELL_TYPE>

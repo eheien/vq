@@ -311,15 +311,13 @@ void Simulation::calcCFF(const BlockID gid) {
 // and will only slow things down, generally used for testing purposes
 //#define PERFORM_SPARSE_MULTIPLIES
 
-void Simulation::matrixVectorMultiplyAccum(double *c, const quakelib::DenseMatrix<GREEN_VAL> *a, const double *b, const bool dense) {
-    int         x, y, l, width, height, array_dim;
+void Simulation::matrixVectorMultiplyAccum(double *c, const quakelib::DenseMatrix<GREEN_VAL> *a, const double *b) {
+    int         x, width, height, array_dim;
     double      val;
 #ifdef DEBUG
 
-    if (dense) {
-        num_mults++;
-        startTimer(mult_timer);
-    }
+    num_mults++;
+    startTimer(mult_timer);
 
 #endif
 
@@ -329,63 +327,15 @@ void Simulation::matrixVectorMultiplyAccum(double *c, const quakelib::DenseMatri
 
     if (!decompress_buf) decompress_buf = (GREEN_VAL *)valloc(sizeof(GREEN_VAL)*array_dim);
 
-    /*if (!mult_buffer) mult_buffer = (double *)valloc(sizeof(double)*array_dim);
-    for (x=0;x<height;++x) mult_buffer[x] = 0;
-    for (y=0;y<width;++y) {
-        if (b[y]) {
-            for (x=0;x<height;++x) mult_buffer[x] += a->val(x,y)*b[y];
-        }
-    }
-    for (x=0;x<height;++x) {
-        l = getGlobalBID(x);
-        c[l] += mult_buffer[x];
-    }*/
-
-    if (a->transpose()) {
-        // This works by calculating the contribution of each input vector (b) element
-        // to the final answer rather than calculating each element of the answer
-        // individually. In the case where most of the vector elements are zero this
-        // will be much faster than normal multiplication techniques. For VC about
-        // 80% or more of the matrix-vector multiplications have sparse vectors.
-
-        if (!mult_buffer) mult_buffer = (double *)valloc(sizeof(double)*array_dim);
-
-        // Reset the temporary buffer
-        for (x=0; x<height; ++x) mult_buffer[x] = 0;
-
-        // Perform the multiplication
-        if (dense) {
-            for (y=0; y<width; ++y) {
-                multiplyRow(mult_buffer, &(b[y]), a->getCol(decompress_buf, y), array_dim);
-            }
-        } else {
-            for (y=0; y<width; ++y) {
-                val = b[y];
-#ifndef PERFORM_SPARSE_MULTIPLIES
-
-                if (!val) continue;
-
-#endif
-                multiplyRow(mult_buffer, &val, a->getCol(decompress_buf, y), array_dim);
-            }
-        }
-
-        // Add the temporary buffer values into the result array
-        for (x=0; x<height; ++x) {
-            l = getGlobalBID(x);
-            c[l] += mult_buffer[x];
-        }
-    } else {
-        for (x=0; x<height; ++x) {
-            val = 0;
-            multiplySumRow(&val, b, a->getRow(decompress_buf, x), width, dense);
-            c[x] += val;
-        }
+    for (x=0; x<height; ++x) {
+        val = 0;
+        multiplySumRow(&val, b, a->getRow(decompress_buf, x), width);
+        c[x] += val;
     }
 
 #ifdef DEBUG
 
-    if (dense) stopTimer(mult_timer);
+    stopTimer(mult_timer);
 
 #endif
 }
@@ -444,7 +394,7 @@ void Simulation::matrixVectorMultiplyAccum(double *c, const quakelib::DenseMatri
 #ifdef USE_SSE  // SSE version
 #include <xmmintrin.h>
 
-void Simulation::multiplySumRow(double *c, const double *b, const GREEN_VAL *a, const int n, const bool dense) {
+void Simulation::multiplySumRow(double *c, const double *b, const GREEN_VAL *a, const int n) {
     __m128d     aval, bval, cval, tmpval;
     double      tmp[2];
 #if SSE_LOOP_UNROLL != 16 && SSE_LOOP_UNROLL != 8 && SSE_LOOP_UNROLL != 6 && SSE_LOOP_UNROLL != 4 && SSE_LOOP_UNROLL != 2
@@ -492,115 +442,16 @@ void Simulation::multiplySumRow(double *c, const double *b, const GREEN_VAL *a, 
 
 #else   // Non-SSE version
 
-void Simulation::multiplySumRow(double *c, const double *b, const GREEN_VAL *a, const int n, const bool dense) {
+void Simulation::multiplySumRow(double *c, const double *b, const GREEN_VAL *a, const int n) {
     double val = 0;
 
-    if (dense) {
-        for (int x=0; x<n; ++x) {
-            val += a[x]*b[x];
-        }
-    } else {
-        for (int x=0; x<n; ++x) {
-#ifndef PERFORM_SPARSE_MULTIPLIES
-
-            if (!b[x]) continue;
-
-#endif
-            val += a[x]*b[x];
-        }
+    for (int x=0; x<n; ++x) {
+        val += a[x]*b[x];
     }
 
     c[0] += val;
 }
 
-#endif
-
-/*!
- Multiplies each value in a by b and adds the result to c.
- Using this function is faster than leaving the code in matrixVectorMultiplyAccum.
- */
-#ifdef USE_SSE
-void Simulation::multiplyRow(double *c, const double *b, const GREEN_VAL *a, const int n) {
-    __m128d     aval, bval, cval, tmpval;
-#if SSE_LOOP_UNROLL != 16 && SSE_LOOP_UNROLL != 8 && SSE_LOOP_UNROLL != 6 && SSE_LOOP_UNROLL != 4 && SSE_LOOP_UNROLL != 2
-#error "Invalid value of SSE_LOOP_UNROLL"
-#endif
-    bval = _mm_load1_pd(b);
-
-    for (int x=0; x<n; x+=SSE_LOOP_UNROLL) {
-#ifdef PREFETCH_A_VEC
-        _mm_prefetch(&a[x+SSE_LOOP_UNROLL], _MM_HINT_T0);
-#endif
-#ifdef PREFETCH_C_VEC
-        _mm_prefetch(&c[x+SSE_LOOP_UNROLL], _MM_HINT_T0);
-#endif
-        aval = _mm_load_pd(&a[x]);
-        cval = _mm_load_pd(&c[x]);
-        tmpval = _mm_mul_pd(aval, bval);
-        cval = _mm_add_pd(tmpval, cval);
-        _mm_store_pd(&c[x], cval);
-
-#if SSE_LOOP_UNROLL > 2
-        aval = _mm_load_pd(&a[x+2]);
-        cval = _mm_load_pd(&c[x+2]);
-        tmpval = _mm_mul_pd(aval, bval);
-        cval = _mm_add_pd(tmpval, cval);
-        _mm_store_pd(&c[x+2], cval);
-#endif
-
-#if SSE_LOOP_UNROLL > 4
-        aval = _mm_load_pd(&a[x+4]);
-        cval = _mm_load_pd(&c[x+4]);
-        tmpval = _mm_mul_pd(aval, bval);
-        cval = _mm_add_pd(tmpval, cval);
-        _mm_store_pd(&c[x+4], cval);
-#endif
-
-#if SSE_LOOP_UNROLL > 6
-        aval = _mm_load_pd(&a[x+6]);
-        cval = _mm_load_pd(&c[x+6]);
-        tmpval = _mm_mul_pd(aval, bval);
-        cval = _mm_add_pd(tmpval, cval);
-        _mm_store_pd(&c[x+6], cval);
-#endif
-
-#if SSE_LOOP_UNROLL > 8
-        aval = _mm_load_pd(&a[x+8]);
-        cval = _mm_load_pd(&c[x+8]);
-        tmpval = _mm_mul_pd(aval, bval);
-        cval = _mm_add_pd(tmpval, cval);
-        _mm_store_pd(&c[x+8], cval);
-#endif
-
-#if SSE_LOOP_UNROLL > 10
-        aval = _mm_load_pd(&a[x+10]);
-        cval = _mm_load_pd(&c[x+10]);
-        tmpval = _mm_mul_pd(aval, bval);
-        cval = _mm_add_pd(tmpval, cval);
-        _mm_store_pd(&c[x+10], cval);
-#endif
-
-#if SSE_LOOP_UNROLL > 12
-        aval = _mm_load_pd(&a[x+12]);
-        cval = _mm_load_pd(&c[x+12]);
-        tmpval = _mm_mul_pd(aval, bval);
-        cval = _mm_add_pd(tmpval, cval);
-        _mm_store_pd(&c[x+12], cval);
-#endif
-
-#if SSE_LOOP_UNROLL > 14
-        aval = _mm_load_pd(&a[x+14]);
-        cval = _mm_load_pd(&c[x+14]);
-        tmpval = _mm_mul_pd(aval, bval);
-        cval = _mm_add_pd(tmpval, cval);
-        _mm_store_pd(&c[x+14], cval);
-#endif
-    }
-}
-#else
-void Simulation::multiplyRow(double *c, const double *b, const GREEN_VAL *a, const int n) {
-    for (int x=0; x<n; ++x) c[x] += b[0]*a[x];
-}
 #endif
 
 /*!

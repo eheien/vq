@@ -132,9 +132,6 @@ class VCParams {
         bool doNormalStress(void) const {
             return params.read<bool>("sim.greens.use_normal");
         };
-        bool useTransposedMatrix(void) const {
-            return params.read<bool>("sim.system.transpose_matrix");
-        };
 
         std::string getModelFile(void) const {
             return params.read<string>("sim.file.input");

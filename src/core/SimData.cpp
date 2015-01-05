@@ -28,8 +28,7 @@
  */
 void VCSimData::setupArrays(const unsigned int &global_sys_size,
                             const unsigned int &local_sys_size,
-                            const bool &compressed,
-                            const bool &transposed) {
+                            const bool &compressed) {
     deallocateArrays();
 
     global_size = global_sys_size;
@@ -37,21 +36,11 @@ void VCSimData::setupArrays(const unsigned int &global_sys_size,
     local_size = local_sys_size+(16-local_sys_size%16);
 
     if (compressed) {
-        if (transposed) {
-            green_shear = new quakelib::CompressedRowMatrixTranspose<GREEN_VAL>(local_size, global_size);
-            green_normal = new quakelib::CompressedRowMatrixTranspose<GREEN_VAL>(local_size, global_size);
-        } else {
-            green_shear = new quakelib::CompressedRowMatrixStraight<GREEN_VAL>(local_size, global_size);
-            green_normal = new quakelib::CompressedRowMatrixStraight<GREEN_VAL>(local_size, global_size);
-        }
+        green_shear = new quakelib::CompressedRowMatrixStraight<GREEN_VAL>(local_size, global_size);
+        green_normal = new quakelib::CompressedRowMatrixStraight<GREEN_VAL>(local_size, global_size);
     } else {
-        if (transposed) {
-            green_shear = new quakelib::DenseStdTranspose<GREEN_VAL>(local_size, global_size);
-            green_normal = new quakelib::DenseStdTranspose<GREEN_VAL>(local_size, global_size);
-        } else {
-            green_shear = new quakelib::DenseStdStraight<GREEN_VAL>(local_size, global_size);
-            green_normal = new quakelib::DenseStdStraight<GREEN_VAL>(local_size, global_size);
-        }
+        green_shear = new quakelib::DenseStdStraight<GREEN_VAL>(local_size, global_size);
+        green_normal = new quakelib::DenseStdStraight<GREEN_VAL>(local_size, global_size);
     }
 
     shear_stress = (double *)malloc(sizeof(double)*global_size);

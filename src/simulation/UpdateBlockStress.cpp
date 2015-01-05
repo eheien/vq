@@ -193,8 +193,7 @@ void UpdateBlockStress::nextStaticFailure(BlockVal &next_static_fail) {
     // update the temporary buffer with the Greens function applied to the block slip rates
     sim->matrixVectorMultiplyAccum(tmpBuffer,
                                    sim->greenShear(),
-                                   sim->getUpdateFieldPtr(),
-                                   true);
+                                   sim->getUpdateFieldPtr());
 
     if (sim->doNormalStress()) {
         for (it=sim->begin(); it!=sim->end(); ++it) {
@@ -204,8 +203,7 @@ void UpdateBlockStress::nextStaticFailure(BlockVal &next_static_fail) {
 
         sim->matrixVectorMultiplyAccum(tmpBuffer,
                                        sim->greenNormal(),
-                                       sim->getUpdateFieldPtr(),
-                                       true);
+                                       sim->getUpdateFieldPtr());
     }
 
     // Go through the blocks and find which one will fail first
@@ -269,14 +267,12 @@ void UpdateBlockStress::stressRecompute(void) {
     // to get shear on local blocks
     sim->matrixVectorMultiplyAccum(sim->getShearStressPtr(),
                                    sim->greenShear(),
-                                   sim->getUpdateFieldPtr(),
-                                   true);
+                                   sim->getUpdateFieldPtr());
 
     if (sim->doNormalStress()) {
         sim->matrixVectorMultiplyAccum(sim->getNormalStressPtr(),
                                        sim->greenNormal(),
-                                       sim->getUpdateFieldPtr(),
-                                       true);
+                                       sim->getUpdateFieldPtr());
     }
 
     // Recompute the CFF on blocks based on the new shear/normal stresses

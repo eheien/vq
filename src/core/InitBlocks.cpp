@@ -51,9 +51,7 @@ void VCInitBlocks::init(SimFramework *_sim) {
     sim->setupArrays(sim->numGlobalBlocks(),
                      sim->numLocalBlocks(),
                      // use compressed array for Barnes Hut style Greens function calculations
-                     sim->getGreensCalcMethod()==GREENS_CALC_BARNES_HUT,
-                     // transposed array for faster sweep calculations
-                     sim->useTransposedMatrix());
+                     sim->getGreensCalcMethod()==GREENS_CALC_BARNES_HUT);
 
     // Set the starting year of the simulation
     sim->setYear(sim->getSimStart());

@@ -25,10 +25,6 @@
 #ifndef _BLOCK_H_
 #define _BLOCK_H_
 
-// Whether to store the matrix in transpose format
-// This enables much faster calculation for sparse vector multiplication with no change in accuracy
-#define GREEN_MATRIX_TRANSPOSE
-
 #define GREEN_VAL       double
 
 typedef unsigned int BlockID;

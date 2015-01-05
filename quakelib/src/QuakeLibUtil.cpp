@@ -356,16 +356,6 @@ unsigned int quakelib::CompressedRow<CELL_TYPE>::getRowLen(void) {
 }
 
 template <class CELL_TYPE>
-CELL_TYPE quakelib::DenseStdTranspose<CELL_TYPE>::val(const unsigned int &row, const unsigned int &col) const {
-    return this->_data[col*this->_nrows+row];
-};
-
-template <class CELL_TYPE>
-void quakelib::DenseStdTranspose<CELL_TYPE>::setVal(const unsigned int &row, const unsigned int &col, const CELL_TYPE &new_val) {
-    /*assert(col<width); assert(row<height);*/ this->_data[col*this->_nrows+row] = new_val;
-};
-
-template <class CELL_TYPE>
 void quakelib::DenseStdStraight<CELL_TYPE>::setVal(const unsigned int &row, const unsigned int &col, const CELL_TYPE &new_val) {
     this->_data[row*this->_ncols+col] = new_val;
 };
@@ -381,58 +371,13 @@ void quakelib::CompressedRowMatrixStraight<CELL_TYPE>::setVal(const unsigned int
 };
 
 template <class CELL_TYPE>
-CELL_TYPE quakelib::CompressedRowMatrixTranspose<CELL_TYPE>::val(const unsigned int &row, const unsigned int &col) const {
-    return this->_rows[col]->val(row);
-};
-
-template <class CELL_TYPE>
-void quakelib::CompressedRowMatrixTranspose<CELL_TYPE>::setVal(const unsigned int &row, const unsigned int &col, const CELL_TYPE &new_val) {
-    this->_rows[col]->setVal(row, new_val);
-};
-
-template <class CELL_TYPE>
 CELL_TYPE *quakelib::DenseStdStraight<CELL_TYPE>::getRow(CELL_TYPE *buf, const unsigned int &row) const {
     return &this->_data[row*this->_ncols];
 }
 
 template <class CELL_TYPE>
-CELL_TYPE *quakelib::DenseStdStraight<CELL_TYPE>::getCol(CELL_TYPE *buf, const unsigned int &col) const {
-    assertThrow(false, "Not implemented.");
-    return NULL;
-}
-
-template <class CELL_TYPE>
-CELL_TYPE *quakelib::DenseStdTranspose<CELL_TYPE>::getRow(CELL_TYPE *buf, const unsigned int &row) const {
-    assertThrow(false, "Not implemented.");
-    return NULL;
-}
-
-template <class CELL_TYPE>
-CELL_TYPE *quakelib::DenseStdTranspose<CELL_TYPE>::getCol(CELL_TYPE *buf, const unsigned int &col) const {
-    return &this->_data[col*this->_nrows];
-}
-
-template <class CELL_TYPE>
 CELL_TYPE *quakelib::CompressedRowMatrixStraight<CELL_TYPE>::getRow(CELL_TYPE *buf, const unsigned int &row) const {
     this->_rows[row]->copyRowContents(buf);
-    return buf;
-}
-
-template <class CELL_TYPE>
-CELL_TYPE *quakelib::CompressedRowMatrixStraight<CELL_TYPE>::getCol(CELL_TYPE *buf, const unsigned int &col) const {
-    assertThrow(false, "Not implemented.");
-    return NULL;
-}
-
-template <class CELL_TYPE>
-CELL_TYPE *quakelib::CompressedRowMatrixTranspose<CELL_TYPE>::getRow(CELL_TYPE *buf, const unsigned int &row) const {
-    assertThrow(false, "Not implemented.");
-    return NULL;
-}
-
-template <class CELL_TYPE>
-CELL_TYPE *quakelib::CompressedRowMatrixTranspose<CELL_TYPE>::getCol(CELL_TYPE *buf, const unsigned int &col) const {
-    this->_rows[col]->copyRowContents(buf);
     return buf;
 }
 
@@ -859,17 +804,13 @@ unsigned long quakelib::Octree<dim>::mem_bytes(void) const {
 
 template class quakelib::DenseStd<float>;
 template class quakelib::DenseStdStraight<float>;
-template class quakelib::DenseStdTranspose<float>;
 template class quakelib::CompressedRowMatrix<float>;
 template class quakelib::CompressedRowMatrixStraight<float>;
-template class quakelib::CompressedRowMatrixTranspose<float>;
 
 template class quakelib::DenseStd<double>;
 template class quakelib::DenseStdStraight<double>;
-template class quakelib::DenseStdTranspose<double>;
 template class quakelib::CompressedRowMatrix<double>;
 template class quakelib::CompressedRowMatrixStraight<double>;
-template class quakelib::CompressedRowMatrixTranspose<double>;
 
 template class quakelib::HFullMatrix<float>;
 template class quakelib::HSuperMatrix<float>;

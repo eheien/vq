@@ -118,9 +118,8 @@ class Simulation : public SimFramework, public VCParams, public VCSimData, publi
         void determineBlockNeighbors(void);
         void computeCFFs(void);
         void calcCFF(const BlockID gid);
-        void matrixVectorMultiplyAccum(double *c, const quakelib::DenseMatrix<GREEN_VAL> *a, const double *b, const bool dense);
-        void multiplySumRow(double *c, const double *b, const GREEN_VAL *a, const int n, const bool dense);
-        void multiplyRow(double *c, const double *b, const GREEN_VAL *a, const int n);
+        void matrixVectorMultiplyAccum(double *c, const quakelib::DenseMatrix<GREEN_VAL> *a, const double *b);
+        void multiplySumRow(double *c, const double *b, const GREEN_VAL *a, const int n);
         void distributeUpdateField(void);
         void distributeBlocks(const quakelib::ElementIDSet &local_id_list, BlockIDProcMapping &global_id_list);
         void collectEventSweep(quakelib::ModelSweeps &sweeps);

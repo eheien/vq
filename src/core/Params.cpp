@@ -68,7 +68,6 @@ void VCParams::read_params(const std::string &param_file_name) {
 
     params.readSet<bool>("sim.system.sanity_check", false);
     params.readSet<bool>("sim.greens.use_normal", true);
-    params.readSet<bool>("sim.system.transpose_matrix", true);
 
     params.readSet<string>("sim.file.input", "");
     params.readSet<string>("sim.file.input_type", "");
