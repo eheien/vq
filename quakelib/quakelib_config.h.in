@@ -9,6 +9,8 @@
 #cmakedefine HDF5_FOUND
 #cmakedefine MPI_C_FOUND
 #cmakedefine GEOGRAPHICLIB_FOUND
+#cmakedefine BLAS_FOUND
+#cmakedefine LAPACK_FOUND
 #cmakedefine QUAKELIB_VERSION_STR "@QUAKELIB_VERSION_STR@"
 #cmakedefine QUAKELIB_GIT_SHA1 "@QUAKELIB_GIT_SHA1@"
 #endif
