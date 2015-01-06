@@ -79,24 +79,24 @@ class Simulation : public SimFramework, public VCParams, public VCSimData, publi
 
         void sumStresses(const quakelib::ElementIDSet &block_set, double &shear_stress_sum, double &shear_stress0_sum, double &normal_stress_sum, double &normal_stress0_sum) const;
 
-        double sumGreenShear(const BlockID &r) const {
+        double sumGreenShear(const BlockID r) const {
             double sum = 0;
 
-            for (int i=0; i<numGlobalBlocks(); ++i) sum += green_shear[i][r];
+            for (int i=0; i<numGlobalBlocks(); ++i) sum += (*green_shear)[i][r];
 
             return sum;
         };
-        double getGreenShear(const BlockID &r, const BlockID &c) const {
-            return green_shear[getLocalInd(r)][c];
+        double getGreenShear(const BlockID r, const BlockID c) const {
+            return (*green_shear)[getLocalInd(r)][c];
         };
-        void setGreens(const BlockID &r, const BlockID &c, const double &new_green_shear, const double &new_green_normal) {
-            green_shear[getLocalInd(r)][c] = new_green_shear;
-            green_normal[getLocalInd(r)][c] = new_green_normal;
+        void setGreens(const BlockID r, const BlockID c, const double new_green_shear, const double new_green_normal) {
+            (*green_shear)[getLocalInd(r)][c] = new_green_shear;
+            (*green_normal)[getLocalInd(r)][c] = new_green_normal;
 
             if (r == c) setSelfStresses(r, new_green_shear, new_green_normal);
         };
         double getGreenNormal(const BlockID &r, const BlockID &c) const {
-            return green_normal[getLocalInd(r)][c];
+            return (*green_normal)[getLocalInd(r)][c];
         };
 
         void determineBlockNeighbors(void);

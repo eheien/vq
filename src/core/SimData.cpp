@@ -34,8 +34,8 @@ void VCSimData::setupArrays(const unsigned int &global_sys_size,
     // Make the local size a factor of 16 to allow SSE loop unrolling
     local_size = local_sys_size+(16-local_sys_size%16);
 
-    green_shear = quakelib::FullDenseMatrix<GREEN_VAL>(local_size, global_size);
-    green_normal = quakelib::FullDenseMatrix<GREEN_VAL>(local_size, global_size);
+    green_shear = new quakelib::FullDenseMatrix<GREEN_VAL>(local_size, global_size);
+    green_normal = new quakelib::FullDenseMatrix<GREEN_VAL>(local_size, global_size);
 
     shear_stress = (double *)malloc(sizeof(double)*global_size);
     assertThrow(shear_stress, "Not enough memory to allocate shear stress array.");

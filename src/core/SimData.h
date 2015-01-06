@@ -40,7 +40,7 @@ class VCSimData : public VCSimDataBlocks, public VCSimDataEvents {
         unsigned int            global_size, local_size;
 
     protected:
-        quakelib::FullDenseMatrix<GREEN_VAL>    green_shear, green_normal;
+        quakelib::FullDenseMatrix<GREEN_VAL>    *green_shear, *green_normal;
         double                  *shear_stress;
         double                  *normal_stress;
         double                  *update_field;
@@ -73,10 +73,10 @@ class VCSimData : public VCSimDataBlocks, public VCSimDataEvents {
         };
 
         const quakelib::FullDenseMatrix<GREEN_VAL> &greenShear(void) const {
-            return green_shear;
+            return *green_shear;
         };
         const quakelib::FullDenseMatrix<GREEN_VAL> &greenNormal(void) const {
-            return green_normal;
+            return *green_normal;
         };
         double *getUpdateFieldPtr(void) const {
             return update_field;
