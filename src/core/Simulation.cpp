@@ -298,7 +298,6 @@ void Simulation::calcCFF(const BlockID gid) {
  Performs a matrix-vector multiply (C += A * B) where C is Nx1, A is MxN and B is Nx1.
  This directly accesses the matrix A and assumes it is stored in transpose format.
  It assumes c should be referenced by the local-global map.
- dense specifies whether the vector is likely mostly non-zero and just used for accounting purposes.
  The SSE version of this function is still under testing and should not yet be used since it assumes
  certain things about memory alignment and matrix padding that are not true for all models.
  */
@@ -307,7 +306,7 @@ void Simulation::calcCFF(const BlockID gid) {
 // and will only slow things down, generally used for testing purposes
 
 void Simulation::matrixVectorMultiplyAccum(double *c, const quakelib::FullDenseMatrix<GREEN_VAL> &a, const double *b) {
-    int         x, width, height, array_dim;
+    int         x, width, height;
     double      val;
 #ifdef DEBUG
 
@@ -318,11 +317,13 @@ void Simulation::matrixVectorMultiplyAccum(double *c, const quakelib::FullDenseM
 
     height = numLocalBlocks();
     width = numGlobalBlocks();
-    array_dim = localSize();
     
     for (x=0; x<height; ++x) {
         val = 0;
-        multiplySumRow(&val, b, a[x], width);
+        if (world_size > 1)
+            multiplySumRow(&val, b, a[x], width, (x == 1 && !isRootNode()));
+        else
+            multiplySumRow(&val, b, a[x], width, (x == 3));
         c[x] += val;
     }
 
@@ -387,7 +388,7 @@ void Simulation::matrixVectorMultiplyAccum(double *c, const quakelib::FullDenseM
 #ifdef USE_SSE  // SSE version
 #include <xmmintrin.h>
 
-void Simulation::multiplySumRow(double *c, const double *b, const GREEN_VAL *a, const int n) {
+void Simulation::multiplySumRow(double *c, const double *b, const GREEN_VAL *a, const int n, bool print_details) {
     __m128d     aval, bval, cval, tmpval;
     double      tmp[2];
 #if SSE_LOOP_UNROLL != 16 && SSE_LOOP_UNROLL != 8 && SSE_LOOP_UNROLL != 6 && SSE_LOOP_UNROLL != 4 && SSE_LOOP_UNROLL != 2
@@ -435,10 +436,11 @@ void Simulation::multiplySumRow(double *c, const double *b, const GREEN_VAL *a, 
 
 #else   // Non-SSE version
 
-void Simulation::multiplySumRow(double *c, const double *b, const GREEN_VAL *a, const int n) {
+void Simulation::multiplySumRow(double *c, const double *b, const GREEN_VAL *a, const int n, bool print_details) {
     double val = 0;
 
     for (int x=0; x<n; ++x) {
+        if (print_details) std::cerr << val << " += " << a[x] << " * " << b[x] << " (" << a[x]*b[x] << ")" << std::endl;
         val += a[x]*b[x];
     }
 
