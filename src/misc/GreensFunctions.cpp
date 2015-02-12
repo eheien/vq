@@ -302,8 +302,6 @@ void GreensFuncCalcBarnesHut::CalculateGreens(Simulation *sim) {
 
         bhInnerCalc(sim, tree, sim->getGlobalBID(n));
     }
-
-    // TODO: symmetrize Greens matrix
 }
 
 void GreensFuncCalcBarnesHut::bhInnerCalc(Simulation *sim, quakelib::Octree<3> *tree, const BlockID &bid) {
