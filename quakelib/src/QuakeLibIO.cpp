@@ -1632,21 +1632,17 @@ int quakelib::ModelWorld::read_files_eqsim(const std::string &geom_file_name, co
 
             new_element.set_lame_lambda(friction_data.get_lame_lambda());
             new_element.set_lame_mu(friction_data.get_lame_mu());
-            //new_element.set_static_strength(friction_data.get_static_strength(it->first));
-            //new_element.set_dynamic_strength(friction_data.get_dynamic_strength(it->first));
+            new_element.set_max_slip(0);    // Set a temporary maximum slip of 0 (this will be changed below)
 
             // Insert partially finished element into the eqsim_world
             eqsim_world.insert(new_element);
 
             // Compute area of the current element, add it to the total for this section
             fault_areas[sit->second.sid()] += eqsim_world.create_sim_element(new_element.id()).area();
-
-
         }
 
         // Go through the created elements and assign maximum slip based on fault section area
         for (eit=eqsim_world.begin_element(); eit!=eqsim_world.end_element(); ++eit) {
-
             // From Table 2A in Wells Coppersmith 1994
             double moment_magnitude = 4.07+0.98*log10(conv.sqm2sqkm(fault_areas[eit->section_id()]));
 
@@ -1655,10 +1651,7 @@ int quakelib::ModelWorld::read_files_eqsim(const std::string &geom_file_name, co
 
             // Set the max slip for the current element
             eit->set_max_slip(max_slip);
-
         }
-
-
     }
 
     insert(eqsim_world);
@@ -2324,7 +2317,11 @@ void quakelib::ModelSweeps::write_ascii(std::ostream &out_stream) const {
 }
 
 void quakelib::ModelSweeps::read_data(const SweepData &in_data) {
-    //memcpy(&_data, &in_data, sizeof(SweepData));
+    // Record the sweep/element in the mapping
+    std::pair<UIndex, UIndex> sweep_elem = std::make_pair(in_data._sweep_number, in_data._element_id);
+    _rel.insert(std::make_pair(sweep_elem, _sweeps.size()));
+    // Put the sweep on the list
+    _sweeps.push_back(in_data);
 }
 
 void quakelib::ModelSweeps::write_data(SweepData &out_data) const {
@@ -2848,6 +2845,143 @@ int quakelib::ModelEventSet::read_file_ascii(const std::string &event_file_name,
     sweep_file.close();
 
     return 0;
+}
+
+
+
+int quakelib::ModelEventSet::read_file_hdf5(const std::string &file_name) {
+#ifdef HDF5_FOUND
+    hid_t       plist_id, data_file;
+    herr_t      res;
+
+    if (!H5Fis_hdf5(file_name.c_str())) return -1;
+
+    plist_id = H5Pcreate(H5P_FILE_ACCESS);
+
+    if (plist_id < 0) exit(-1);
+
+    data_file = H5Fopen(file_name.c_str(), H5F_ACC_RDONLY, plist_id);
+
+    if (data_file < 0) exit(-1);
+
+    read_events_hdf5(data_file);
+    read_sweeps_hdf5(data_file);
+
+    // Release HDF5 handles
+    res = H5Pclose(plist_id);
+
+    if (res < 0) exit(-1);
+
+    res = H5Fclose(data_file);
+
+    if (res < 0) exit(-1);
+
+#else
+    // TODO: Error out
+#endif
+    return 0;
+}
+
+void quakelib::ModelEventSet::read_events_hdf5(const hid_t &data_file) {
+#ifdef HDF5_FOUND
+    std::vector<FieldDesc>                        descs;
+    std::map<UIndex, ModelEvent>::const_iterator  fit;
+    hsize_t                     num_fields, num_events;
+    unsigned int                i;
+    EventData                   *event_data;
+    size_t                      *field_offsets;
+    size_t                      *field_sizes;
+    herr_t                      res;
+
+    _events.clear();
+    descs.clear();
+    ModelEvent::get_field_descs(descs);
+    num_fields = descs.size();
+    field_offsets = new size_t[num_fields];
+    field_sizes = new size_t[num_fields];
+
+    for (i=0; i<num_fields; ++i) {
+        field_offsets[i] = descs[i].offset;
+        field_sizes[i] = descs[i].size;
+    }
+
+    res = H5TBget_table_info(data_file, ModelEvent::hdf5_table_name().c_str(), &num_fields, &num_events);
+
+    if (res < 0) exit(-1);
+
+    // TODO: check that num_fields matches the descs
+
+    event_data = new EventData[num_events];
+    res = H5TBread_records(data_file, ModelEvent::hdf5_table_name().c_str(), 0, num_events, sizeof(EventData), field_offsets, field_sizes, event_data);
+
+    if (res < 0) exit(-1);
+
+    // Read section data into the World
+    for (i=0; i<num_events; ++i) {
+        ModelEvent  new_event;
+        new_event.read_data(event_data[i]);
+        _events.push_back(new_event);
+    }
+
+    // Free memory for HDF5 related data
+    delete event_data;
+    delete field_offsets;
+    delete field_sizes;
+#else
+    // TODO: Error out
+#endif
+}
+
+void quakelib::ModelEventSet::read_sweeps_hdf5(const hid_t &data_file) {
+#ifdef HDF5_FOUND
+    std::vector<FieldDesc>                          descs;
+    ModelEventSet::iterator                   fit;
+    hsize_t                     num_fields, num_sweeps;
+    unsigned int                i;
+    unsigned int                start_sweep;
+    unsigned int                end_sweep;
+    SweepData                   *event_sweeps;
+    size_t                      *field_offsets;
+    size_t                      *field_sizes;
+    herr_t                      res;
+
+    descs.clear();
+    ModelSweeps::get_field_descs(descs);
+    num_fields = descs.size();
+    field_offsets = new size_t[num_fields];
+    field_sizes = new size_t[num_fields];
+
+    for (i=0; i<num_fields; ++i) {
+        field_offsets[i] = descs[i].offset;
+        field_sizes[i] = descs[i].size;
+    }
+
+    res = H5TBget_table_info(data_file, ModelSweeps::hdf5_table_name().c_str(), &num_fields, &num_sweeps);
+
+    if (res < 0) exit(-1);
+
+    event_sweeps = new SweepData[num_sweeps];
+    res = H5TBread_records(data_file, ModelSweeps::hdf5_table_name().c_str(), 0, num_sweeps, sizeof(SweepData), field_offsets, field_sizes, event_sweeps);
+
+    if (res < 0) exit(-1);
+
+    // Read sweeps data into the ModelEventSet
+    for (fit=_events.begin(); fit!=_events.end(); ++fit) {
+        fit->getStartEndSweep(start_sweep, end_sweep);
+        ModelSweeps new_sweeps;
+
+        for (i=start_sweep; i<end_sweep; i++) {
+            new_sweeps.read_data(event_sweeps[i]);
+        }
+
+        fit->setSweeps(new_sweeps);
+
+    }
+
+    delete event_sweeps;
+#else
+    // TODO: Error out
+#endif
 }
 
 // ********************************************************************************************

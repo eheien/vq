@@ -489,12 +489,30 @@ void Simulation::distributeUpdateField(void) {
 }
 
 /*!
+ Broadcast the update field from the root node to other nodes.
+ This is used for the aftershock slip adjustment calculations.
+ */
+void Simulation::broadcastUpdateField(void) {
+#ifdef MPI_C_FOUND
+#ifdef DEBUG
+    startTimer(dist_comm_timer);
+#endif
+
+    MPI_Bcast(update_field, numGlobalBlocks(), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+#ifdef DEBUG
+    stopTimer(dist_comm_timer);
+#endif
+#endif
+}
+
+/*!
  Distributes a list of blocks among all processors. Used for determining failed blocks in a sweep.
  */
 void Simulation::distributeBlocks(const quakelib::ElementIDSet &local_id_list, BlockIDProcMapping &global_id_list) {
+    quakelib::ElementIDSet::const_iterator  it;
 #ifdef MPI_C_FOUND
     int                                     i, n, p;
-    quakelib::ElementIDSet::const_iterator  it;
     int                         *proc_block_count = new int[world_size];
     int                         *proc_block_disps = new int[world_size];
     BlockID                     *local_block_ids = new BlockID[local_id_list.size()];
@@ -551,6 +569,7 @@ void Simulation::distributeBlocks(const quakelib::ElementIDSet &local_id_list, B
     delete block_ids;
     delete proc_block_count;
     delete proc_block_disps;
+    delete local_block_ids;
 #else   // MPI_C_FOUND
 
     // Copy the local IDs into the global list just for the single processor
